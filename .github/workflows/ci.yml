@@ -1,0 +1,88 @@
+---
+name: CI
+
+"on":
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - name: yamllint
+        run: pipx run yamllint -s .github/workflows .yamllint.yml
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Tests sin KVM (las de arranque quedan ignoradas)
+        run: cargo test --all-targets
+
+  kvm-boot:
+    runs-on: ubuntu-latest
+    env:
+      CORTEX9_KVM: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Habilitar /dev/kvm para el usuario del runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Exigir /dev/kvm accesible
+        run: |
+          ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+      - name: Pruebas de arranque (fallan si no hay KVM)
+        run: cargo test --test boot -- --include-ignored --nocapture
+      - name: Binario y salida serie
+        run: |
+          cargo run --release > serial.txt
+          cat serial.txt
+          grep -Fx 'cortex9-kvm-vmm guest: hola desde x86-64' serial.txt
+          grep -Fx 'modo: EFER.LMA=1 CR0.PG=1 CR4.PAE=1' serial.txt
+          grep -Fx 'primos<100000: cantidad=9592 suma=454396537' serial.txt
+          grep -Fx 'guest: fin' serial.txt
+
+  miri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri, rust-src
+      - name: Miri sobre los tests unitarios (sin KVM)
+        run: cargo miri test --lib
+        env:
+          MIRIFLAGS: -Zmiri-strict-provenance
+
+  asan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+      - name: AddressSanitizer sobre los tests unitarios
+        run: >-
+          cargo test -Zbuild-std --lib
+          --target x86_64-unknown-linux-gnu
+        env:
+          RUSTFLAGS: -Zsanitizer=address
+          RUSTDOCFLAGS: -Zsanitizer=address
