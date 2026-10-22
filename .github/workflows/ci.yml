@@ -31,6 +31,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Tests sin KVM (las de arranque quedan ignoradas)
         run: cargo test --all-targets
+      - name: Guest emulado en Unicorn (sin KVM) y control negativo
+        run: |
+          python3 -m venv /tmp/uc
+          /tmp/uc/bin/pip install unicorn
+          img=$(find target/debug/build -name guest.bin | head -n1)
+          /tmp/uc/bin/python tools/emulate_guest.py "$img"
+          /tmp/uc/bin/python tools/emulate_guest.py "$img" --no-long-mode
 
   kvm-boot:
     runs-on: ubuntu-latest
