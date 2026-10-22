@@ -1,0 +1,10 @@
+[package]
+name = "cortex9-kvm-vmm"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "VMM mínimo en Rust sobre KVM: guest x86-64 en modo largo con consola serie 16550."
+
+[dependencies]
+kvm-bindings = "0.14.2"
+kvm-ioctls = "0.25.1"
