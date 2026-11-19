@@ -37,7 +37,7 @@ Lo medido en la máquina de desarrollo (Debian 13, kernel 6.12, Intel Xeon virtu
 | Control negativo en Unicorn sin CR0.PG ni CR4.PAE | `... --no-long-mode` | imprime `FALLO`, código 1 |
 | Pruebas de arranque con `CORTEX9_KVM=1` sin acceso a `/dev/kvm` | `CORTEX9_KVM=1 cargo test --test boot -- --include-ignored` | las 3 fallan con `Permission denied`, como se espera |
 
-**El arranque real sobre KVM no se ejecutó en esta máquina.** Lo cubre el job `kvm-boot` del CI, que habilita `/dev/kvm` en el runner, falla si el dispositivo no es accesible y compara la salida serie completa. Hasta que ese job corra en verde, el arranque sobre KVM no está demostrado.
+**El arranque real sobre KVM no se ejecutó en la máquina de desarrollo** (sin acceso a `/dev/kvm`). Quedó demostrado en el job `kvm-boot` del CI ([run 44488076691](https://github.com/federiconbaez/cortex9-kvm-vmm/actions/runs/44488076691)): habilita `/dev/kvm` en el runner, exige que el dispositivo sea accesible, corre las pruebas de arranque y compara la salida serie completa. Ese job, junto con lint, unit, Miri y ASan, quedó en verde.
 
 ### Pruebas de arranque y `CORTEX9_KVM`
 
@@ -96,7 +96,7 @@ Measured on the development machine (Debian 13, kernel 6.12, virtualised Intel X
 | Negative control in Unicorn without CR0.PG and CR4.PAE | `... --no-long-mode` | prints `FALLO`, exit code 1 |
 | Boot tests with `CORTEX9_KVM=1` and no `/dev/kvm` access | `CORTEX9_KVM=1 cargo test --test boot -- --include-ignored` | all 3 fail with `Permission denied`, as expected |
 
-**A real boot on KVM was not run on this machine.** It is covered by the CI `kvm-boot` job, which enables `/dev/kvm` on the runner, fails if the device is not accessible, and compares the full serial output. Until that job runs green, booting on KVM is not demonstrated.
+**A real boot on KVM was not run on the development machine** (no access to `/dev/kvm`). It was demonstrated by the CI `kvm-boot` job ([run 44488076691](https://github.com/federiconbaez/cortex9-kvm-vmm/actions/runs/44488076691)): it enables `/dev/kvm` on the runner, requires the device to be accessible, runs the boot tests and compares the full serial output. That job, together with lint, unit, Miri and ASan, finished green.
 
 ### Boot tests and `CORTEX9_KVM`
 
